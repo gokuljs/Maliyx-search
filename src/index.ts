@@ -1,54 +1,23 @@
-// Example TypeScript interface
-interface Email {
-  id: string;
-  subject: string;
-  body: string;
-  from: string;
-  to: string[];
-  date: Date;
-  isRead: boolean;
-  tags?: string[];
-}
+import express, { Request, Response, RequestHandler } from 'express';
+import config from './config/index.js';
+import { clerkMiddleware } from '@clerk/express';
 
-// Example function using the interface
-function searchEmails(query: string, emails: Email[]): Email[] {
-  return emails.filter(
-    email =>
-      email.subject.includes(query) || email.body.includes(query) || email.from.includes(query)
-  );
-}
+const app = express();
+const PORT = config.port;
+app.use(clerkMiddleware());
+app.use(express.json());
 
-// Example usage
-const exampleEmails: Email[] = [
-  {
-    id: '1',
-    subject: 'Meeting Tomorrow',
-    body: "Let's discuss the project roadmap.",
-    from: 'john@example.com',
-    to: ['you@example.com'],
-    date: new Date('2023-12-15'),
-    isRead: true,
-    tags: ['work', 'important'],
-  },
-  {
-    id: '2',
-    subject: 'Weekend Plans',
-    body: 'Do you want to go hiking this weekend?',
-    from: 'sarah@example.com',
-    to: ['you@example.com'],
-    date: new Date('2023-12-16'),
-    isRead: false,
-  },
-];
+const rootHandler: RequestHandler = (_req, res) => {
+  res.json({
+    message: 'Mailyx Search API is running',
+    environment: config.environment,
+  });
+};
+app.get('/', rootHandler);
 
-// Example search
-const results = searchEmails('project', exampleEmails);
-console.log('Search results:', results);
-
-// Main function (entry point)
-function main() {
-  console.log('Mailyx Search - TypeScript setup complete!');
-  console.log(`Found ${results.length} emails matching "project"`);
-}
-
-main();
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${config.environment}`);
+  console.log(`Search example: http://localhost:${PORT}/api/search?q=project`);
+});
