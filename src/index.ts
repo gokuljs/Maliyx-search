@@ -10,7 +10,7 @@ app.use(express.json());
 const rootHandler: RequestHandler = (_req, res) => {
   console.log('rootHandler');
   res.json({
-    message: 'test api',
+    message: 'hello worldsdsd',
     environment: config.environment,
   });
 };

@@ -8,3 +8,11 @@ services:
     environment:
       - NODE_ENV=production
     restart: unless-stopped
+    develop:
+      watch:
+        - path: ./src
+          target: /app/src
+          action: sync
+        - path: ./package.json
+          target: /app/package.json
+          action: sync
