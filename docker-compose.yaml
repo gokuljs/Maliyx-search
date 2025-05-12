@@ -1,5 +1,6 @@
 services:
   app:
+    container_name: mailyx-es-app
     build:
       context: .
       dockerfile: Dockerfile
