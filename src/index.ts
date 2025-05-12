@@ -8,8 +8,9 @@ app.use(clerkMiddleware());
 app.use(express.json());
 
 const rootHandler: RequestHandler = (_req, res) => {
+  console.log('rootHandler');
   res.json({
-    message: 'Mailyx Search API is running',
+    message: 'test api',
     environment: config.environment,
   });
 };
