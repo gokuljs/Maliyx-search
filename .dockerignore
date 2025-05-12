@@ -110,3 +110,5 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.pic
 .pnp.* 
+
+.env*
