@@ -43,22 +43,29 @@ jobs:
 
       - name: Tag Docker image for ECR
         run: |
-          echo "ECR Registry: ${{ secrets.ECR_REGISTRY }}"
-          echo "ECR Repository: ${{ secrets.ECR_REPOSITORY }}"
+          # Store and clean the registry and repository values
+          ECR_REGISTRY=$(echo "${{ secrets.ECR_REGISTRY }}" | tr -d '\n\r')
+          ECR_REPOSITORY=$(echo "${{ secrets.ECR_REPOSITORY }}" | tr -d '\n\r')
+
+          echo "ECR Registry: $ECR_REGISTRY"
+          echo "ECR Repository: $ECR_REPOSITORY"
+
           # Make sure both variables are defined
-          if [ -z "${{ secrets.ECR_REGISTRY }}" ] || [ -z "${{ secrets.ECR_REPOSITORY }}" ]; then
+          if [ -z "$ECR_REGISTRY" ] || [ -z "$ECR_REPOSITORY" ]; then
             echo "Error: ECR_REGISTRY or ECR_REPOSITORY secrets are not defined"
             exit 1
           fi
 
           # Use the image ID for tagging if mailyx-search-app:latest doesn't exist
           if docker images | grep -q "mailyx-search-app"; then
-            docker tag mailyx-search-app:latest "${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest"
+            docker tag mailyx-search-app:latest "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
           else
             echo "Using image ID for tagging: ${{ steps.get-image-id.outputs.IMAGE_ID }}"
-            docker tag ${{ steps.get-image-id.outputs.IMAGE_ID }} "${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest"
+            docker tag ${{ steps.get-image-id.outputs.IMAGE_ID }} "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
           fi
 
       - name: Push Docker image to ECR
         run: |
-          docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+          ECR_REGISTRY=$(echo "${{ secrets.ECR_REGISTRY }}" | tr -d '\n\r')
+          ECR_REPOSITORY=$(echo "${{ secrets.ECR_REPOSITORY }}" | tr -d '\n\r')
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
