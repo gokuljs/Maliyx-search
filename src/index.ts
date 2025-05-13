@@ -4,13 +4,13 @@ import { clerkMiddleware } from '@clerk/express';
 
 const app = express();
 const PORT = config.port;
-app.use(clerkMiddleware());
+// app.use(clerkMiddleware());
 app.use(express.json());
 
 const rootHandler: RequestHandler = (_req, res) => {
   console.log('rootHandler');
   res.json({
-    message: 'hello worldsdsd',
+    message: 'Maiylx root handler',
     environment: config.environment,
   });
 };
