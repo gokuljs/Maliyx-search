@@ -1,5 +1,6 @@
 services:
   app:
+    image: mailyx-search-app
     container_name: mailyx-es-app
     build:
       context: .
