@@ -25,101 +25,15 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build Docker image using Docker Compose
-        id: build_step
         run: |
-          set -ex
-          docker compose -f docker-compose.yaml build app
-          # Get the image ID of the service we just built.
-          BUILT_IMAGE_ID=$(docker compose -f docker-compose.yaml images -q app)
-          if [ -z "$BUILT_IMAGE_ID" ]; then
-            echo "Error: Could not find image ID for service 'app' after build."
-            echo "Current Docker images:"
-            docker images
-            exit 1
-          fi
-          echo "Successfully built image for service 'app'. Image ID: $BUILT_IMAGE_ID"
-          # Output this ID for use in subsequent steps
-          echo "::set-output name=image_id::$BUILT_IMAGE_ID"
-
+          docker compose -f docker-compose.yaml build
       - name: List Docker images (debug)
         run: docker images
 
-      - name: Ensure local image tag is correct
-        id: ensure_local_tag
-        env:
-          DESIRED_LOCAL_IMAGE_NAME: mailyx-search-app
-          DESIRED_LOCAL_IMAGE_TAG: latest
+      - name: Tag Docker image for ECR
         run: |
-          set -ex
-          BUILT_IMAGE_ID_FROM_BUILD_STEP="${{ steps.build_step.outputs.image_id }}"
-          LOCAL_TARGET_FQN="${DESIRED_LOCAL_IMAGE_NAME}:${DESIRED_LOCAL_IMAGE_TAG}"
+          docker tag mailyx-search-app:latest ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
 
-          if [ -z "$BUILT_IMAGE_ID_FROM_BUILD_STEP" ]; then
-            echo "Error: No image ID received from the build step."
-            exit 1
-          fi
-
-          echo "Attempting to tag image ID '$BUILT_IMAGE_ID_FROM_BUILD_STEP' as '$LOCAL_TARGET_FQN'"
-          docker tag "$BUILT_IMAGE_ID_FROM_BUILD_STEP" "$LOCAL_TARGET_FQN"
-
-          echo "Verifying that '$LOCAL_TARGET_FQN' now points to '$BUILT_IMAGE_ID_FROM_BUILD_STEP'."
-
-          # Compare RootFS layers to confirm it's the same image content
-          LAYERS_OF_BUILT_ID=$(docker image inspect -f '''{{json .RootFS.Layers}}''' "$BUILT_IMAGE_ID_FROM_BUILD_STEP")
-          LAYERS_OF_TAGGED_IMAGE=$(docker image inspect -f '''{{json .RootFS.Layers}}''' "$LOCAL_TARGET_FQN" 2>/dev/null || echo "NOT_FOUND")
-
-          if [ "$LAYERS_OF_TAGGED_IMAGE" = "NOT_FOUND" ]; then
-            echo "Error: Failed to tag built image. '$LOCAL_TARGET_FQN' does not exist after tagging."
-            echo "Image ID from build: $BUILT_IMAGE_ID_FROM_BUILD_STEP"
-            echo "Current Docker images:"
-            docker images
-            exit 1
-          elif [ "$LAYERS_OF_BUILT_ID" != "$LAYERS_OF_TAGGED_IMAGE" ]; then
-            echo "Error: '$LOCAL_TARGET_FQN' was tagged, but it does not point to the image ID '$BUILT_IMAGE_ID_FROM_BUILD_STEP'."
-            echo "Layers of built image ID: $LAYERS_OF_BUILT_ID"
-            echo "Layers of tagged local image: $LAYERS_OF_TAGGED_IMAGE"
-            echo "Current Docker images:"
-            docker images
-            exit 1
-          else
-            echo "'$LOCAL_TARGET_FQN' successfully references the built image ID '$BUILT_IMAGE_ID_FROM_BUILD_STEP'."
-          fi
-          # Output the confirmed local image name for the next step
-          echo "::set-output name=local_image_fqn::$LOCAL_TARGET_FQN"
-
-      - name: Tag Docker image for ECR and Push
-        env:
-          ECR_REGISTRY_RAW: ${{ secrets.ECR_REGISTRY }}
-          ECR_REPOSITORY_RAW: ${{ secrets.ECR_REPOSITORY }}
-          SOURCE_IMAGE_FQN: ${{ steps.ensure_local_tag.outputs.local_image_fqn }}
-          TARGET_TAG: latest
+      - name: Push Docker image to ECR
         run: |
-          set -ex
-
-          if [ -z "$SOURCE_IMAGE_FQN" ]; then
-            echo "Error: Source image FQN not provided from previous step."
-            exit 1
-          fi
-
-          # Sanitize potential newlines or carriage returns from secrets
-          ECR_REGISTRY=$(echo "$ECR_REGISTRY_RAW" | tr -d '\n\r')
-          ECR_REPOSITORY=$(echo "$ECR_REPOSITORY_RAW" | tr -d '\n\r')
-
-          if [ -z "$ECR_REGISTRY" ]; then
-            echo "Error: ECR_REGISTRY secret is not set or is empty after sanitization."
-            exit 1
-          fi
-          if [ -z "$ECR_REPOSITORY" ]; then
-            echo "Error: ECR_REPOSITORY secret is not set or is empty after sanitization."
-            exit 1
-          fi
-
-          ECR_IMAGE_FQN="${ECR_REGISTRY}/${ECR_REPOSITORY}:${TARGET_TAG}"
-
-          echo "Tagging local image '$SOURCE_IMAGE_FQN' as ECR image '$ECR_IMAGE_FQN'"
-          docker tag "$SOURCE_IMAGE_FQN" "$ECR_IMAGE_FQN"
-          echo "Image tagged successfully for ECR."
-
-          echo "Pushing '$ECR_IMAGE_FQN' to ECR"
-          docker push "$ECR_IMAGE_FQN"
-          echo "Image pushed successfully."
+          docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
