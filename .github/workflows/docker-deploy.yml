@@ -27,6 +27,8 @@ jobs:
       - name: Build Docker image using Docker Compose
         run: |
           docker compose -f docker-compose.yaml build
+      - name: List Docker images (debug)
+        run: docker images
 
       - name: Tag Docker image for ECR
         run: |
